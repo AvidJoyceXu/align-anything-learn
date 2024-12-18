@@ -56,7 +56,7 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def generate_answer_by_vllim(problems: list[str], model_name_or_path: str, num_responses: int) ->list[str]:
+def generate_answer_by_vllm(problems: list[str], model_name_or_path: str, num_responses: int) ->list[str]:
     samplingparams = SamplingParams(
         temperature = 0.5,
         repetition_penalty = 1.1,
@@ -97,7 +97,7 @@ def main() -> None:
     with open(args.input_path, encoding='utf-8') as f:
         problems = json.load(f)
 
-    answer = generate_answer_by_vllim(problems, args.model_name_or_path, args.num_responses)
+    answer = generate_answer_by_vllm(problems, args.model_name_or_path, args.num_responses)
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)

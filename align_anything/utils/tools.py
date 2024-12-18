@@ -35,7 +35,6 @@ import yaml
 from PIL import Image
 import torch.utils.data
 from scipy.stats import entropy
-from moviepy.editor import AudioFileClip
 from torch.nn.utils.rnn import pad_sequence
 from torch.types import Number
 from torch.autograd import Variable
@@ -494,41 +493,6 @@ def load_raw_outputs(raw_outputs_dir):
     with open(raw_outputs_dir, 'rb') as f:
         inference_output = pickle.load(f)
     return inference_output
-
-def download_audio(youtube_id, start_time, audiocap_id, output_dir):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': os.path.join(output_dir, f'{audiocap_id}.webm'),
-        'noplaylist': True,
-    }
-    
-    youtube_url = f'https://www.youtube.com/watch?v={youtube_id}'
-    
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([youtube_url])
-    except yt_dlp.utils.DownloadError as e:
-        print(f"Download failed for {youtube_url}. Error: {e}")
-        return None, f"Download failed for {youtube_url}. Error: {e}"
-    
-    audio_path = os.path.join(output_dir, f'{audiocap_id}.webm')
-    
-    try:
-        audio_clip = AudioFileClip(audio_path)
-        end_time = audio_clip.duration
-        start_time_sec = float(start_time)
-        audio_segment = audio_clip.subclip(start_time_sec, min(end_time, start_time_sec + 10))
-        
-        output_audio_path = os.path.join(output_dir, f'{audiocap_id}.mp3')
-        audio_segment.write_audiofile(output_audio_path)
-        
-        os.remove(audio_path)
-        if output_audio_path.endswith('.mp3') and os.path.isfile(output_audio_path):
-            return output_audio_path, ""
-        return None, ".webm file connot be saved."
-    except Exception as e:
-        print(f"Error processing audio for {audiocap_id}. Error: {e}")
-        return None, f"Error processing audio for {audiocap_id}. Error: {e}"
 
 def image_crop(input_folder):
     output_folder = f'{input_folder}_crop'
