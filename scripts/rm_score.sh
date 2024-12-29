@@ -1,9 +1,9 @@
 # path to your trained reward model
 # for example: ~/output/rm
-MODEL_NAME_OR_PATH="~/models/Qwen-0.5B-Instruct" # model path
+MODEL_NAME_OR_PATH="../output/rm/slice_end" # model path
 
 # for example: ~/align-anything/generate_scripts/test/Qwen-0.5B-Instruct_num_4_time_20241103_133249.json
-EVAL_DATASETS="" # dataset path
+EVAL_DATASETS="../../datasets/PKU-SafeRLHF-single-dimension" # dataset path
 EVAL_TEMPLATE="PKUSafeRLHF" # dataset template
 EVAL_SPLIT="test" # split the dataset
 
