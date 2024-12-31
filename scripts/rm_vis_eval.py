@@ -6,6 +6,18 @@ import numpy as np
 from tqdm import tqdm
 from align_anything.models.pretrained_model_with_value import load_pretrained_model_with_value_head
 
+import argparse
+import os
+from align_anything.utils.tools import (
+    custom_cfgs_to_dict,
+    dict_to_namedtuple,
+    prepare_ds_train_cfgs,
+    read_cfgs,
+    seed_everything,
+    split_prompt_response,
+    update_dict,
+)
+
 def load_dataset(file_path):
     """加载偏好数据集"""
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -24,8 +36,12 @@ def get_reward_score(model, tokenizer, prompt, response, device):
     
     # 获取模型预测
     with torch.no_grad():
-        outputs = model(**inputs)
-        scores = outputs.logits.squeeze().cpu().numpy()
+        output = model(**inputs)
+        
+        scores = output.scores
+        # end_scores = output.end_scores
+        # higher_rewards, lower_rewards = scores.squeeze(dim=-1).chunk(chunks=2, dim=0)
+        # higher_end_reward, lower_end_reward = end_scores.squeeze(dim=-1).chunk(chunks=2, dim=0)
     
     return scores
 
@@ -34,18 +50,19 @@ def init_models(cfgs) :
     return (model, tokenizer, processor)
     """
     return load_pretrained_model_with_value_head(
-        cfgs.model_cfgs.model_name_or_path,
+        "../output/rm/slice_end",
         model_max_length=cfgs.model_cfgs.model_max_length,
         padding_side='right',
         trust_remote_code=cfgs.train_cfgs.trust_remote_code,
         modality='text',
     )
-def analyze_preference_dataset(dataset_path, model_path, save_dir):
+
+def analyze_preference_dataset(cfgs, dataset_path, model_path, save_dir):
     """分析偏好数据集并生成可视化"""
     # 加载模型和tokenizer
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = AutoModelForSequenceClassification.from_pretrained(model_path).to(device)
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model, tokenizer, processor = init_models(cfgs)
+    model.to(device)
     
     # 加载数据集
     dataset = load_dataset(dataset_path)
@@ -66,7 +83,8 @@ def analyze_preference_dataset(dataset_path, model_path, save_dir):
             item['response_0'] if item['better_response_id'] == 0 else item['response_1'],
             device
         )
-        chosen_scores.append(chosen_score)
+        # chosen_scores.append(chosen_score)
+        print(torch.min(chosen_score))
         
         # 获取rejected response的评分
         rejected_score = get_reward_score(
@@ -76,8 +94,11 @@ def analyze_preference_dataset(dataset_path, model_path, save_dir):
             item['response_1'] if item['better_response_id'] == 0 else item['response_0'],
             device
         )
-        rejected_scores.append(rejected_score)
-    
+        # rejected_scores.append(rejected_score)
+        print(torch.min(rejected_score))
+        break
+    print(chosen_score.shape)
+    print(rejected_score.shape)
     # # 绘制分布图
     # plt.figure(figsize=(10, 6))
     # sns.kdeplot(data=chosen_scores, label='Chosen Responses', color='green')
@@ -97,9 +118,10 @@ def analyze_preference_dataset(dataset_path, model_path, save_dir):
     # plt.savefig(f'{save_dir}/reward_boxplot.png')
     # plt.close()
     
+
     # 计算统计信息
     stats = {
-        'chosen_mean': np.mean(chosen_scores),
+        'chosen_mean': torch.mean(chosen_scores),
         'chosen_std': np.std(chosen_scores),
         'rejected_mean': np.mean(rejected_scores),
         'rejected_std': np.std(rejected_scores),
@@ -118,6 +140,23 @@ if __name__ == "__main__":
     model_path = "../output/rm/slice_end"
     save_dir = "../output/rm_vis"
     
+    import os
+    # read default configs from the yaml file
+    task = os.path.join('text_to_text', 'rm')
+    dict_cfgs, ds_cfgs = read_cfgs(mode='train', task=task)
+
+    # get custom configs from command line
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    _, unparsed_args = parser.parse_known_args()
+    keys = [k[2:] for k in unparsed_args[1::2]]
+    values = list(unparsed_args[2::2])
+    unparsed_args = dict(zip(keys, values))
+    for k, v in unparsed_args.items():
+        dict_cfgs = update_dict(dict_cfgs, custom_cfgs_to_dict(k, v))
+
+    # setup training
+    cfgs = dict_to_namedtuple(dict_cfgs)
+
     # 运行分析
-    stats = analyze_preference_dataset(dataset_path, model_path, save_dir)
+    stats = analyze_preference_dataset(cfgs=cfgs, dataset_path=dataset_path, model_path=model_path, save_dir=save_dir)
     print("Analysis completed. Statistics:", stats)

@@ -3,11 +3,13 @@
 MODEL_NAME_OR_PATH="../output/rm/slice_end" # model path
 
 # for example: ~/align-anything/generate_scripts/test/Qwen-0.5B-Instruct_num_4_time_20241103_133249.json
-EVAL_DATASETS="../../datasets/PKU-SafeRLHF-single-dimension" # dataset path
+EVAL_DATASETS="/home/pku0014/align-anything/generate_scripts/test/Qwen-0.5B-Instruct_num_4_time_20241230_040718.json" # the generated model output in json
+# EVAL_DATASETS="/home/pku0014/align-anything/generate_scripts/test/slice_end_num_4_time_20241230_041550.json" # the generated model output in json
+
 EVAL_TEMPLATE="PKUSafeRLHF" # dataset template
 EVAL_SPLIT="test" # split the dataset
 
-OUTPUT_DIR="~/output/rm_score" # output dir
+OUTPUT_DIR="../output/rm_score" # output dir
 
 # For wandb online logging
 export WANDB_API_KEY=""

@@ -1,7 +1,8 @@
 file_list=(
-    ~/models/Qwen-0.5B-Instruct
+    # ~/models/Qwen-0.5B-Instruct
     # you can replace it with other models
     # or add more models below
+    ../output/dpo/slice_end
 )
 
 # set gpu to what you want
